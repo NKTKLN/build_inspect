@@ -1,3 +1,4 @@
+import 'package:build_inspect/pages/projects_page.dart';
 import 'package:flutter/material.dart';
 import 'package:build_inspect/pages/login_page.dart';
 import 'package:build_inspect/pages/register_page.dart';
@@ -25,11 +26,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BuildInspect',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/register',
+      initialRoute: '/login',
       routes: {
         '/register': (context) => const RegisterPage(),
         '/login': (context) => const LoginPage(),
+        '/projects': (context) => const ProjectsPage(),
       },
     );
   }

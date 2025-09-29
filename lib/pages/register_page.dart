@@ -88,8 +88,6 @@ class _RegisterPageState extends State<RegisterPage> {
       'email': email,
       'password_hash': passwordHash,
       'role': role,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
     });
 
     ScaffoldMessenger.of(
@@ -175,7 +173,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 DropdownButton<String>(
                   value: selectedUserRoleValue,
                   hint: const Text("Выберите роль пользователя"),
-                  items: <String>['Инженер', 'Менеджер', 'Заказчик'].map((
+                  items: <String>['Инженер', 'Менеджер', 'Наблюдатель'].map((
                     String option,
                   ) {
                     return DropdownMenuItem<String>(

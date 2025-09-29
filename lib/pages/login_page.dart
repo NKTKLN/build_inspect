@@ -1,8 +1,11 @@
+import 'package:build_inspect/pages/projects_page.dart';
 import 'package:flutter/material.dart';
 import 'package:build_inspect/pages/register_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+
+import 'package:universal_html/html.dart' as html;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,6 +48,18 @@ class _LoginPageState extends State<LoginPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Добро пожаловать, ${user['name']}!")),
+    );
+
+    html.document.cookie = 'current_user_email=$email; path=/';
+
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ProjectsPage(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
     );
   }
 
