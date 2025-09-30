@@ -23,6 +23,8 @@ class _ProjectCardPageState extends State<ProjectCardPage>
 
   Map<String, dynamic>? currentUser;
   Map<String, dynamic>? project;
+  String searchQuery = "";
+  String sortBy = "date"; // date | name
 
   @override
   void initState() {
@@ -220,16 +222,116 @@ class _ProjectCardPageState extends State<ProjectCardPage>
     );
   }
 
+  void _createPhaseDialog() {
+    final nameController = TextEditingController();
+    DateTime? deadline;
+    String status = "Не выполнен";
+    String priority = "Низкий";
+
+    final statusOptions = ['Не выполнен', 'В процессе', 'Завершен'];
+    final priorityOptions = ['Низкий', 'Средний', 'Высокий'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Создать этап"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "Название"),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(labelText: "Статус"),
+                  items: statusOptions
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) status = value;
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: priority,
+                  decoration: const InputDecoration(labelText: "Приоритет"),
+                  items: priorityOptions
+                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) priority = value;
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Дедлайн: ${deadline != null ? "${deadline!.day}.${deadline!.month}.${deadline!.year}" : "—"}",
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            deadline = picked;
+                          });
+                        }
+                      },
+                      child: const Text("Выбрать"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isNotEmpty) {
+                  phasesBox.add({
+                    'name': name,
+                    'project_id': widget.projectId,
+                    'status': status,
+                    'priority': priority,
+                    'deadline': deadline?.toIso8601String(),
+                    'created_at': DateTime.now().toIso8601String(),
+                  });
+                  setState(() {});
+                }
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[400],
+              ),
+              child: const Text("Создать"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (project == null || currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
-    final projectPhases = phasesBox.values
-        .where((phase) => phase['project_id'] == widget.projectId)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -240,6 +342,13 @@ class _ProjectCardPageState extends State<ProjectCardPage>
         shadowColor: Colors.grey[400],
         iconTheme: const IconThemeData(color: Colors.black),
       ),
+      floatingActionButton: currentUser?['role'] == 'Менеджер'
+          ? FloatingActionButton(
+              onPressed: _createPhaseDialog,
+              backgroundColor: Colors.blue[400],
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
         child: Column(
@@ -349,35 +458,93 @@ class _ProjectCardPageState extends State<ProjectCardPage>
             const SizedBox(height: 12),
             const SizedBox(height: 12),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(Colors.white),
-                    dataRowColor: WidgetStateProperty.all(Colors.white),
-                    border: TableBorder.all(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    columns: const [
-                      DataColumn(label: Text("Название")),
-                      DataColumn(label: Text("Статус")),
-                      DataColumn(label: Text("Дедлайн")),
-                      DataColumn(label: Text("Приоритет")),
-                    ],
-                    rows: projectPhases.map((phase) {
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(phase['name'] ?? '')),
-                          DataCell(Text(phase['status'] ?? 'Не выполнен')),
-                          DataCell(Text(phase['deadline'] ?? '—')),
-                          DataCell(Text(phase['priority'] ?? 'Низкий')),
+              child: ValueListenableBuilder(
+                valueListenable: phasesBox.listenable(),
+                builder: (context, Box box, _) {
+                  if (box.isEmpty) {
+                    return const Center(child: Text("Нет этапов"));
+                  }
+
+                  List<Map<String, dynamic>> projectPhases = [];
+                  for (int i = 0; i < box.length; i++) {
+                    final phase = Map<String, dynamic>.from(box.getAt(i));
+                    if (phase['project_id'] == widget.projectId) {
+                      phase['id'] = i;
+                      projectPhases.add(phase);
+                    }
+                  }
+                  if (searchQuery.isNotEmpty) {
+                    projectPhases = projectPhases
+                        .where(
+                          (p) =>
+                              (p['name'] ?? '')
+                                  .toString()
+                                  .toLowerCase()
+                                  .contains(searchQuery) ||
+                              (p['status'] ?? '')
+                                  .toString()
+                                  .toLowerCase()
+                                  .contains(searchQuery),
+                        )
+                        .toList();
+                  }
+                  if (sortBy == "name") {
+                    projectPhases.sort(
+                      (a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''),
+                    );
+                  } else {
+                    projectPhases.sort(
+                      (a, b) => (b['created_at'] ?? '').compareTo(
+                        a['created_at'] ?? '',
+                      ),
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(Colors.white),
+                        dataRowColor: WidgetStateProperty.all(Colors.white),
+                        border: TableBorder.all(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        columns: const [
+                          DataColumn(label: Text("Название")),
+                          DataColumn(label: Text("Дедлайн")),
+                          DataColumn(label: Text("Дата создания")),
+                          DataColumn(label: Text("Статус")),
+                          DataColumn(label: Text("Приоритет")),
                         ],
-                      );
-                    }).toList(),
-                  ),
-                ),
+                        rows: projectPhases.map((phase) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(phase['name'] ?? ''), onTap: () {}),
+                              DataCell(
+                                Text(phase['deadline'] ?? '—'),
+                                onTap: () {},
+                              ),
+                              DataCell(
+                                Text(phase['created_at'] ?? '—'),
+                                onTap: () {},
+                              ),
+                              DataCell(
+                                Text(phase['status'] ?? 'Не выполнен'),
+                                onTap: () {},
+                              ),
+                              DataCell(
+                                Text(phase['priority'] ?? 'Низкий'),
+                                onTap: () {},
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

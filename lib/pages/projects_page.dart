@@ -1,5 +1,4 @@
 import 'package:build_inspect/pages/login_page.dart';
-import 'package:build_inspect/pages/project_card_page.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
@@ -299,6 +298,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
                         columns: const [
                           DataColumn(label: Text("Название")),
                           DataColumn(label: Text("Дедлайн")),
+                          DataColumn(label: Text("Дата создания")),
                           DataColumn(label: Text("Статус")),
                           DataColumn(label: Text("Приоритет")),
                         ],
@@ -315,6 +315,14 @@ class _ProjectsPageState extends State<ProjectsPage> {
                               ),
                               DataCell(
                                 Text(project['deadline'] ?? '—'),
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/project',
+                                  arguments: project["id"],
+                                ),
+                              ),
+                              DataCell(
+                                Text(project['created_at'] ?? '—'),
                                 onTap: () => Navigator.pushNamed(
                                   context,
                                   '/project',
