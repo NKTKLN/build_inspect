@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:build_inspect/pages/defect_card_page.dart';
 import 'package:build_inspect/pages/phase_card_page.dart';
 import 'package:build_inspect/pages/project_card_page.dart';
 import 'package:build_inspect/pages/projects_page.dart';
@@ -17,6 +20,9 @@ void main() async {
   await Hive.openBox('comments');
   await Hive.openBox('defect_history');
   await Hive.openBox('reports');
+  await Hive.openBox('comments');
+  await Hive.openBox('logs');
+  await Hive.openBox<Uint8List>('files');
 
   runApp(const MyApp());
 }
@@ -40,6 +46,10 @@ class MyApp extends StatelessWidget {
         '/phase': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as int;
           return PhaseCardPage(phaseId: args);
+        },
+        '/defect': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as int;
+          return DefectPage(defectId: args);
         },
       },
     );
