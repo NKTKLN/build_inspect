@@ -1,28 +1,25 @@
 import 'package:build_inspect/pages/login_page.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
-import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
-import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'package:universal_html/html.dart' as html;
 
-class ProjectCardPage extends StatefulWidget {
-  final int projectId;
+class PhaseCardPage extends StatefulWidget {
+  final int phaseId;
 
-  const ProjectCardPage({super.key, required this.projectId});
+  const PhaseCardPage({super.key, required this.phaseId});
 
   @override
-  State<ProjectCardPage> createState() => _ProjectCardPageState();
+  State<PhaseCardPage> createState() => _PhaseCardPageState();
 }
 
-class _ProjectCardPageState extends State<ProjectCardPage>
-    with SingleTickerProviderStateMixin {
-  final projectsBox = Hive.box('projects');
+class _PhaseCardPageState extends State<PhaseCardPage> {
   final phasesBox = Hive.box('phases');
+  final defectsBox = Hive.box('defects');
   final usersBox = Hive.box('users');
 
   Map<String, dynamic>? currentUser;
-  Map<String, dynamic>? project;
+  Map<String, dynamic>? phase;
   String searchQuery = "";
   String sortBy = "date"; // date | name
 
@@ -30,7 +27,7 @@ class _ProjectCardPageState extends State<ProjectCardPage>
   void initState() {
     super.initState();
     _loadCurrentUser();
-    _loadProject();
+    _loadPhase();
   }
 
   void _loadCurrentUser() {
@@ -60,38 +57,27 @@ class _ProjectCardPageState extends State<ProjectCardPage>
     }
   }
 
-  void _loadProject() {
+  void _loadPhase() {
     setState(() {
-      project = Map<String, dynamic>.from(projectsBox.getAt(widget.projectId));
+      phase = Map<String, dynamic>.from(phasesBox.getAt(widget.phaseId));
     });
   }
 
-  void _editProjectDialog() {
-    final nameController = TextEditingController(text: project?['name']);
-    final descController = TextEditingController(text: project?['description']);
-    final selectedUsers = List<String>.from(project?['users'] ?? []);
-    final statusOptions = ['Не выполнен', 'В процессе', 'Завершен'];
+  void _editPhaseDialog() {
+    final nameController = TextEditingController(text: phase?['name']);
+    final descController = TextEditingController(text: phase?['description']);
+    final statusOptions = [
+      'Не выполнен',
+      'В процессе',
+      'На проверке',
+      'Завершен',
+    ];
     final priorityOptions = ['Низкий', 'Средний', 'Высокий'];
-    String status = project?['status'] ?? 'Не выполнен';
-    String priority = project?['priority'] ?? 'Низкий';
-    DateTime? deadline = project?['deadline'] != null
-        ? DateTime.tryParse(project!['deadline'])
+    String status = phase?['status'] ?? 'Не выполнен';
+    String priority = phase?['priority'] ?? 'Низкий';
+    DateTime? deadline = phase?['deadline'] != null
+        ? DateTime.tryParse(phase!['deadline'])
         : null;
-
-    // Все пользователи кроме текущего
-    final allUsers = usersBox.keys
-        .map((key) => Map<String, dynamic>.from(usersBox.get(key)))
-        .where((user) => user['email'] != currentUser?['email'])
-        .toList();
-
-    final items = allUsers
-        .map(
-          (user) => MultiSelectItem<String>(
-            user['email'],
-            "${user['name']} ${user['surname']} (${user['role']})",
-          ),
-        )
-        .toList();
 
     showDialog(
       context: context,
@@ -99,7 +85,7 @@ class _ProjectCardPageState extends State<ProjectCardPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text("Редактировать проект"),
+              title: const Text("Редактировать этап"),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -111,29 +97,6 @@ class _ProjectCardPageState extends State<ProjectCardPage>
                     TextField(
                       controller: descController,
                       decoration: const InputDecoration(labelText: "Описание"),
-                    ),
-                    const SizedBox(height: 12),
-                    MultiSelectDialogField<String>(
-                      items: items,
-                      searchable: true,
-                      title: const Text("Участники проекта"),
-                      buttonText: const Text("Добавить/удалить пользователей"),
-                      confirmText: const Text("Готово"),
-                      cancelText: const Text("Отмена"),
-                      initialValue: selectedUsers,
-                      onConfirm: (values) {
-                        setDialogState(() {
-                          selectedUsers.clear();
-                          selectedUsers.addAll(values);
-                        });
-                      },
-                      chipDisplay: MultiSelectChipDisplay(
-                        onTap: (value) {
-                          setDialogState(() {
-                            selectedUsers.remove(value);
-                          });
-                        },
-                      ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -159,14 +122,11 @@ class _ProjectCardPageState extends State<ProjectCardPage>
                           .toList(),
                       onChanged: (value) {
                         if (value != null) {
-                          setDialogState(() {
-                            priority = value;
-                          });
+                          setDialogState(() => priority = value);
                         }
                       },
                     ),
                     const SizedBox(height: 12),
-                    // Дедлайн
                     Row(
                       children: [
                         Expanded(
@@ -202,13 +162,12 @@ class _ProjectCardPageState extends State<ProjectCardPage>
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    project?['name'] = nameController.text.trim();
-                    project?['description'] = descController.text.trim();
-                    project?['users'] = selectedUsers;
-                    project?['status'] = status;
-                    project?['priority'] = priority;
-                    project?['deadline'] = deadline?.toIso8601String();
-                    projectsBox.putAt(widget.projectId, project!);
+                    phase?['name'] = nameController.text.trim();
+                    phase?['description'] = descController.text.trim();
+                    phase?['status'] = status;
+                    phase?['priority'] = priority;
+                    phase?['deadline'] = deadline?.toIso8601String();
+                    phasesBox.putAt(widget.phaseId, phase!);
                     setState(() {});
                     Navigator.pop(ctx);
                   },
@@ -222,20 +181,20 @@ class _ProjectCardPageState extends State<ProjectCardPage>
     );
   }
 
-  void _createPhaseDialog() {
+  void _createDefectDialog() {
     final nameController = TextEditingController();
     DateTime? deadline;
-    String status = "Не выполнен";
+    String status = "Открыт";
     String priority = "Низкий";
 
-    final statusOptions = ['Не выполнен', 'В процессе', 'Завершен'];
+    final statusOptions = ['Открыт', 'В процессе', 'Закрыт'];
     final priorityOptions = ['Низкий', 'Средний', 'Высокий'];
 
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text("Создать этап"),
+          title: const Text("Создать дефект"),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -304,9 +263,9 @@ class _ProjectCardPageState extends State<ProjectCardPage>
               onPressed: () {
                 final name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  phasesBox.add({
+                  defectsBox.add({
                     'name': name,
-                    'project_id': widget.projectId,
+                    'phase_id': widget.phaseId,
                     'status': status,
                     'priority': priority,
                     'deadline': deadline?.toIso8601String(),
@@ -316,9 +275,6 @@ class _ProjectCardPageState extends State<ProjectCardPage>
                 }
                 Navigator.pop(ctx);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[400],
-              ),
               child: const Text("Создать"),
             ),
           ],
@@ -327,16 +283,196 @@ class _ProjectCardPageState extends State<ProjectCardPage>
     );
   }
 
+  Widget buildCharts(List<Map<String, dynamic>> defects) {
+    Map<String, int> defectsByDate = {};
+    for (var d in defects) {
+      if (d['created_at'] != null) {
+        final date = DateTime.tryParse(d['created_at']!)!;
+        final key = "${date.year}-${date.month}-${date.day}";
+        defectsByDate[key] = (defectsByDate[key] ?? 0) + 1;
+      }
+    }
+    final sortedDates = defectsByDate.keys.toList()..sort();
+
+    List<FlSpot> timeSpots = [];
+    for (int i = 0; i < sortedDates.length; i++) {
+      timeSpots.add(
+        FlSpot(i.toDouble(), defectsByDate[sortedDates[i]]!.toDouble()),
+      );
+    }
+
+    Map<String, int> defectsByStatus = {};
+    for (var d in defects) {
+      final status = d['status'] ?? 'Открыт';
+      defectsByStatus[status] = (defectsByStatus[status] ?? 0) + 1;
+    }
+
+    Map<String, int> defectsByPriority = {};
+    for (var d in defects) {
+      final priority = d['priority'] ?? 'Низкий';
+      defectsByPriority[priority] = (defectsByPriority[priority] ?? 0) + 1;
+    }
+
+    return Column(
+      children: [
+        // График по времени
+        SizedBox(
+          height: 200,
+          child: LineChart(
+            LineChartData(
+              borderData: FlBorderData(show: true),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      if (value.toInt() >= 0 &&
+                          value.toInt() < sortedDates.length) {
+                        return Text(
+                          sortedDates[value.toInt()]
+                              .split('-')
+                              .sublist(1)
+                              .join('.'),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      }
+                      return const Text('');
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: true),
+                ),
+              ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: timeSpots,
+                  isCurved: true,
+                  barWidth: 3,
+                  color: Colors.blue,
+                  dotData: FlDotData(show: true),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final keys = defectsByStatus.keys.toList();
+                            if (value.toInt() >= 0 &&
+                                value.toInt() < keys.length) {
+                              return Text(
+                                keys[value.toInt()],
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            }
+                            return const Text('');
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: true),
+                      ),
+                    ),
+                    barGroups: List.generate(defectsByStatus.length, (i) {
+                      final key = defectsByStatus.keys.toList()[i];
+                      return BarChartGroupData(
+                        x: i,
+                        barRods: [
+                          BarChartRodData(
+                            toY: defectsByStatus[key]!.toDouble(),
+                            color: Colors.orange,
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: SizedBox(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final keys = defectsByPriority.keys.toList();
+                            if (value.toInt() >= 0 &&
+                                value.toInt() < keys.length) {
+                              return Text(
+                                keys[value.toInt()],
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            }
+                            return const Text('');
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: true),
+                      ),
+                    ),
+                    barGroups: List.generate(defectsByPriority.length, (i) {
+                      final key = defectsByPriority.keys.toList()[i];
+                      return BarChartGroupData(
+                        x: i,
+                        barRods: [
+                          BarChartRodData(
+                            toY: defectsByPriority[key]!.toDouble(),
+                            color: Colors.red,
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (project == null || currentUser == null) {
+    if (phase == null || currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    List<Map<String, dynamic>> phaseDefects = [];
+    for (int i = 0; i < defectsBox.length; i++) {
+      final defect = Map<String, dynamic>.from(defectsBox.getAt(i));
+      if (defect['phase_id'] == widget.phaseId) {
+        defect['id'] = i;
+        phaseDefects.add(defect);
+      }
     }
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text("Проект: ${project?['name'] ?? ''}"),
+        title: Text("Этап: ${phase?['name'] ?? ''}"),
         backgroundColor: Colors.white,
         elevation: 2,
         shadowColor: Colors.grey[400],
@@ -344,156 +480,122 @@ class _ProjectCardPageState extends State<ProjectCardPage>
       ),
       floatingActionButton: currentUser?['role'] == 'Менеджер'
           ? FloatingActionButton(
-              onPressed: _createPhaseDialog,
-              backgroundColor: Colors.blue[400],
+              onPressed: _createDefectDialog,
+              backgroundColor: Colors.red[400],
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              project?['name'] ?? '',
+              phase?['name'] ?? '',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              project?['description'] ?? '',
+              phase?['description'] ?? '',
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Text(
-                      "Статус: ",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      project?['status'] ?? 'Не выполнен',
-                      style: const TextStyle(fontWeight: FontWeight.normal),
-                    ),
-                  ],
+                const Text(
+                  "Статус: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      "Приоритет: ",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      project?['priority'] ?? 'Низкий',
-                      style: const TextStyle(fontWeight: FontWeight.normal),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      "Дедлайн: ",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      project?['deadline'] != null
-                          ? project!['deadline']!.substring(0, 10)
-                          : '—',
-                      style: const TextStyle(fontWeight: FontWeight.normal),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                if (currentUser?['role'] == 'Менеджер')
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _editProjectDialog,
-                        icon: const Icon(Icons.edit),
-                        label: const Text("Редактировать проект"),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text("Удалить проект"),
-                              content: const Text(
-                                "Вы уверены, что хотите удалить этот проект?",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: const Text("Отмена"),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    projectsBox.deleteAt(widget.projectId);
-                                    Navigator.pop(ctx);
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("Удалить"),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.delete),
-                        label: const Text("Удалить проект"),
-                      ),
-                    ],
-                  ),
+                Text(phase?['status'] ?? 'Не выполнен'),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text(
+                  "Приоритет: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(phase?['priority'] ?? 'Низкий'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text(
+                  "Дедлайн: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(phase?['deadline']?.substring(0, 10) ?? '—'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (currentUser?['role'] == 'Менеджер')
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _editPhaseDialog,
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Редактировать этап"),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      phasesBox.deleteAt(widget.phaseId);
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.delete),
+                    label: const Text("Удалить"),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 16),
             const Text(
-              "Этапы проекта",
+              "Графики дефектов",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            buildCharts(phaseDefects),
+            const SizedBox(height: 24),
+            const Text(
+              "Дефекты этапа",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
-            Expanded(
+            SizedBox(
+              height: 400,
               child: ValueListenableBuilder(
-                valueListenable: phasesBox.listenable(),
+                valueListenable: defectsBox.listenable(),
                 builder: (context, Box box, _) {
                   if (box.isEmpty) {
-                    return const Center(child: Text("Нет этапов"));
+                    return const Center(child: Text("Нет дефектов"));
                   }
 
-                  List<Map<String, dynamic>> projectPhases = [];
+                  List<Map<String, dynamic>> phaseDefects = [];
                   for (int i = 0; i < box.length; i++) {
-                    final phase = Map<String, dynamic>.from(box.getAt(i));
-                    if (phase['project_id'] == widget.projectId) {
-                      phase['id'] = i;
-                      projectPhases.add(phase);
+                    final defect = Map<String, dynamic>.from(box.getAt(i));
+                    if (defect['phase_id'] == widget.phaseId) {
+                      defect['id'] = i;
+                      phaseDefects.add(defect);
                     }
                   }
+
                   if (searchQuery.isNotEmpty) {
-                    projectPhases = projectPhases
-                        .where(
-                          (p) =>
-                              (p['name'] ?? '')
-                                  .toString()
-                                  .toLowerCase()
-                                  .contains(searchQuery) ||
-                              (p['status'] ?? '')
-                                  .toString()
-                                  .toLowerCase()
-                                  .contains(searchQuery),
-                        )
-                        .toList();
+                    phaseDefects = phaseDefects.where((d) {
+                      return (d['name'] ?? '').toLowerCase().contains(
+                            searchQuery,
+                          ) ||
+                          (d['status'] ?? '').toLowerCase().contains(
+                            searchQuery,
+                          );
+                    }).toList();
                   }
+
                   if (sortBy == "name") {
-                    projectPhases.sort(
+                    phaseDefects.sort(
                       (a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''),
                     );
                   } else {
-                    projectPhases.sort(
+                    phaseDefects.sort(
                       (a, b) => (b['created_at'] ?? '').compareTo(
                         a['created_at'] ?? '',
                       ),
@@ -518,47 +620,47 @@ class _ProjectCardPageState extends State<ProjectCardPage>
                           DataColumn(label: Text("Статус")),
                           DataColumn(label: Text("Приоритет")),
                         ],
-                        rows: projectPhases.map((phase) {
+                        rows: phaseDefects.map((defect) {
                           return DataRow(
                             cells: [
                               DataCell(
-                                Text(phase['name'] ?? ''),
+                                Text(defect['name'] ?? ''),
                                 onTap: () => Navigator.pushNamed(
                                   context,
-                                  '/phase',
-                                  arguments: phase["id"],
+                                  '/defect',
+                                  arguments: defect["id"],
                                 ),
                               ),
                               DataCell(
-                                Text(phase['deadline'] ?? '—'),
+                                Text(defect['deadline'] ?? '—'),
                                 onTap: () => Navigator.pushNamed(
                                   context,
-                                  '/phase',
-                                  arguments: phase["id"],
+                                  '/defect',
+                                  arguments: defect["id"],
                                 ),
                               ),
                               DataCell(
-                                Text(phase['created_at'] ?? '—'),
+                                Text(defect['created_at'] ?? '—'),
                                 onTap: () => Navigator.pushNamed(
                                   context,
-                                  '/phase',
-                                  arguments: phase["id"],
+                                  '/defect',
+                                  arguments: defect["id"],
                                 ),
                               ),
                               DataCell(
-                                Text(phase['status'] ?? 'Не выполнен'),
+                                Text(defect['status'] ?? 'Открыт'),
                                 onTap: () => Navigator.pushNamed(
                                   context,
-                                  '/phase',
-                                  arguments: phase["id"],
+                                  '/defect',
+                                  arguments: defect["id"],
                                 ),
                               ),
                               DataCell(
-                                Text(phase['priority'] ?? 'Низкий'),
+                                Text(defect['priority'] ?? 'Низкий'),
                                 onTap: () => Navigator.pushNamed(
                                   context,
-                                  '/phase',
-                                  arguments: phase["id"],
+                                  '/defect',
+                                  arguments: defect["id"],
                                 ),
                               ),
                             ],
