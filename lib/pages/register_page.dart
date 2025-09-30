@@ -192,12 +192,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   onPressed: register,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 45),
-                    backgroundColor: Colors.blue[400],
                   ),
-                  child: const Text(
-                    "Зарегистрироваться",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  child: const Text("Зарегистрироваться"),
                 ),
                 const SizedBox(height: 15),
                 GestureDetector(

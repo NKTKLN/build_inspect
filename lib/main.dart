@@ -1,3 +1,4 @@
+import 'package:build_inspect/pages/project_card_page.dart';
 import 'package:build_inspect/pages/projects_page.dart';
 import 'package:flutter/material.dart';
 import 'package:build_inspect/pages/login_page.dart';
@@ -15,7 +16,7 @@ void main() async {
   await Hive.openBox('comments');
   await Hive.openBox('defect_history');
   await Hive.openBox('reports');
-  
+
   runApp(const MyApp());
 }
 
@@ -31,6 +32,10 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/login': (context) => const LoginPage(),
         '/projects': (context) => const ProjectsPage(),
+        '/project': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as int;
+          return ProjectCardPage(projectId: args);
+        },
       },
     );
   }

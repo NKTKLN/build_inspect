@@ -107,12 +107,8 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: login,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 45),
-                    backgroundColor: Colors.blue[400],
                   ),
-                  child: const Text(
-                    "Войти",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  child: const Text("Войти"),
                 ),
                 const SizedBox(height: 15),
                 GestureDetector(

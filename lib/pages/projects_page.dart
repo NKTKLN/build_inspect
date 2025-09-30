@@ -1,3 +1,5 @@
+import 'package:build_inspect/pages/login_page.dart';
+import 'package:build_inspect/pages/project_card_page.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
@@ -37,6 +39,18 @@ class _ProjectsPageState extends State<ProjectsPage> {
     if (email != null && usersBox.containsKey(email)) {
       setState(() {
         currentUser = Map<String, dynamic>.from(usersBox.get(email));
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
       });
     }
   }
@@ -238,7 +252,9 @@ class _ProjectsPageState extends State<ProjectsPage> {
 
                   List<Map<String, dynamic>> projects = [];
                   for (int i = 0; i < box.length; i++) {
-                    projects.add(Map<String, dynamic>.from(box.getAt(i)));
+                    final project = Map<String, dynamic>.from(box.getAt(i));
+                    project['id'] = i;
+                    projects.add(project);
                   }
 
                   if (searchQuery.isNotEmpty) {
@@ -291,19 +307,35 @@ class _ProjectsPageState extends State<ProjectsPage> {
                             cells: [
                               DataCell(
                                 Text(project['name'] ?? ''),
-                                onTap: () => {},
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/project',
+                                  arguments: project["id"],
+                                ),
                               ),
                               DataCell(
                                 Text(project['deadline'] ?? '—'),
-                                onTap: () => {},
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/project',
+                                  arguments: project["id"],
+                                ),
                               ),
                               DataCell(
                                 Text(project['status'] ?? 'Не выполнен'),
-                                onTap: () => {},
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/project',
+                                  arguments: project["id"],
+                                ),
                               ),
                               DataCell(
                                 Text(project['priority'] ?? 'Низкий'),
-                                onTap: () => {},
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/project',
+                                  arguments: project["id"],
+                                ),
                               ),
                             ],
                           );
