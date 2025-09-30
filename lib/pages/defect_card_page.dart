@@ -70,7 +70,12 @@ class _DefectPageState extends State<DefectPage> {
         ? DateTime.tryParse(defect!['deadline'])
         : null;
 
-    final statusOptions = ['Открыт', 'В процессе', 'Закрыт'];
+    final statusOptions = [
+      'Открыт',
+      'В процессе',
+      'На проверке'
+          'Закрыт',
+    ];
     final priorityOptions = ['Низкий', 'Средний', 'Высокий'];
 
     showDialog(
@@ -93,7 +98,9 @@ class _DefectPageState extends State<DefectPage> {
                       initialValue: status,
                       decoration: const InputDecoration(labelText: "Статус"),
                       items: statusOptions
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value != null) setDialogState(() => status = value);
@@ -104,10 +111,14 @@ class _DefectPageState extends State<DefectPage> {
                       initialValue: priority,
                       decoration: const InputDecoration(labelText: "Приоритет"),
                       items: priorityOptions
-                          .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                          .map(
+                            (p) => DropdownMenuItem(value: p, child: Text(p)),
+                          )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null) setDialogState(() => priority = value);
+                        if (value != null) {
+                          setDialogState(() => priority = value);
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
@@ -150,10 +161,19 @@ class _DefectPageState extends State<DefectPage> {
                       'defect_id': widget.defectId,
                       'timestamp': DateTime.now().toIso8601String(),
                       'changes': {
-                        'name': {'old': defect?['name'], 'new': nameController.text},
+                        'name': {
+                          'old': defect?['name'],
+                          'new': nameController.text,
+                        },
                         'status': {'old': defect?['status'], 'new': status},
-                        'priority': {'old': defect?['priority'], 'new': priority},
-                        'deadline': {'old': defect?['deadline'], 'new': deadline?.toIso8601String()},
+                        'priority': {
+                          'old': defect?['priority'],
+                          'new': priority,
+                        },
+                        'deadline': {
+                          'old': defect?['deadline'],
+                          'new': deadline?.toIso8601String(),
+                        },
                       },
                       'user': currentUser?['email'],
                     });
@@ -222,19 +242,51 @@ class _DefectPageState extends State<DefectPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(defect?['name'] ?? '', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              defect?['name'] ?? '',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
-            Row(children: [const Text("Статус: ", style: TextStyle(fontWeight: FontWeight.bold)), Text(defect?['status'] ?? 'Открыт')]),
+            Row(
+              children: [
+                const Text(
+                  "Статус: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(defect?['status'] ?? 'Открыт'),
+              ],
+            ),
             const SizedBox(height: 8),
-            Row(children: [const Text("Приоритет: ", style: TextStyle(fontWeight: FontWeight.bold)), Text(defect?['priority'] ?? 'Низкий')]),
+            Row(
+              children: [
+                const Text(
+                  "Приоритет: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(defect?['priority'] ?? 'Низкий'),
+              ],
+            ),
             const SizedBox(height: 8),
-            Row(children: [const Text("Дедлайн: ", style: TextStyle(fontWeight: FontWeight.bold)), Text(defect?['deadline']?.substring(0, 10) ?? '—')]),
+            Row(
+              children: [
+                const Text(
+                  "Дедлайн: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(defect?['deadline']?.substring(0, 10) ?? '—'),
+              ],
+            ),
             const SizedBox(height: 24),
 
-            if (currentUser?['role'] == 'Менеджер' || currentUser?['role'] == 'Инженер')
+            if (currentUser?['role'] == 'Менеджер' ||
+                currentUser?['role'] == 'Инженер')
               Row(
                 children: [
-                  ElevatedButton.icon(onPressed: _editDefectDialog, icon: const Icon(Icons.edit), label: const Text("Редактировать")),
+                  ElevatedButton.icon(
+                    onPressed: _editDefectDialog,
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Редактировать"),
+                  ),
                   const SizedBox(width: 16),
                   ElevatedButton.icon(
                     onPressed: () {
@@ -248,7 +300,10 @@ class _DefectPageState extends State<DefectPage> {
               ),
 
             const SizedBox(height: 24),
-            const Text("Комментарии", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Комментарии",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
 
             Container(
@@ -266,10 +321,15 @@ class _DefectPageState extends State<DefectPage> {
                   itemBuilder: (context, index) {
                     final c = defectComments[index];
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 4,
+                        horizontal: 8,
+                      ),
                       child: ListTile(
                         title: Text(c['comment'] ?? ''),
-                        subtitle: Text("От: ${c['user']}  |  ${c['timestamp'].substring(0, 16)}"),
+                        subtitle: Text(
+                          "От: ${c['user']}  |  ${c['timestamp'].substring(0, 16)}",
+                        ),
                       ),
                     );
                   },
@@ -282,17 +342,27 @@ class _DefectPageState extends State<DefectPage> {
               controller: commentController,
               decoration: InputDecoration(
                 labelText: "Добавить комментарий",
-                suffixIcon: IconButton(icon: const Icon(Icons.send), onPressed: _addComment),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _addComment,
+                ),
               ),
             ),
 
             const SizedBox(height: 24),
-            const Text("Логи изменений", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Логи изменений",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            ...defectLogs.map((l) => ListTile(
-                  title: Text("Изменения от ${l['user']}"),
-                  subtitle: Text("${l['timestamp'].substring(0, 16)}\n${l['changes']}"),
-                )),
+            ...defectLogs.map(
+              (l) => ListTile(
+                title: Text("Изменения от ${l['user']}"),
+                subtitle: Text(
+                  "${l['timestamp'].substring(0, 16)}\n${l['changes']}",
+                ),
+              ),
+            ),
           ],
         ),
       ),
