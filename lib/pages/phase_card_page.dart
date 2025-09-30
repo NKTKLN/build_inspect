@@ -478,7 +478,9 @@ class _PhaseCardPageState extends State<PhaseCardPage> {
         shadowColor: Colors.grey[400],
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      floatingActionButton: currentUser?['role'] == 'Менеджер'
+      floatingActionButton:
+          (currentUser?['role'] == 'Менеджер' ||
+              currentUser?['role'] == 'Инженер')
           ? FloatingActionButton(
               onPressed: _createDefectDialog,
               backgroundColor: Colors.red[400],
