@@ -8,16 +8,24 @@ import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final Box? usersBox;
+
+  const LoginPage({super.key, this.usersBox});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  late final Box usersBox;
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final usersBox = Hive.box('users');
+
+  @override
+  void initState() {
+    super.initState();
+    usersBox = widget.usersBox ?? Hive.box('users');
+  }
 
   void login() {
     final email = emailController.text.trim();
